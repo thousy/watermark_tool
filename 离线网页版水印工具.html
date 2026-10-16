@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>证件防盗用水印生成工具 (离线单文件版)</title>
+    <style>
+        :root {
+            --primary: #d32f2f;
+            --primary-hover: #b71c1c;
+            --bg: #f4f6f9;
+            --card-bg: #ffffff;
+            --border: #e0e4ec;
+            --text: #2c3e50;
+            --text-sub: #6c757d;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        header {
+            background: #fff;
+            border-bottom: 1px solid var(--border);
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+        }
+        header h1 {
+            font-size: 18px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        header .badges {
+            font-size: 13px;
+            color: var(--text-sub);
+            display: flex;
+            gap: 16px;
+        }
+        .main-container {
+            display: flex;
+            flex: 1;
+            height: calc(100vh - 58px);
+            overflow: hidden;
+        }
+        .sidebar {
+            width: 400px;
+            background: #fff;
+            border-right: 1px solid var(--border);
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .form-group label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #333;
+        }
+        select, input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 9px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        select:focus, input[type="text"]:focus {
+            border-color: var(--primary);
+        }
+        .range-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .range-row input[type="range"] {
+            flex: 1;
+            accent-color: var(--primary);
+        }
+        .range-row span {
+            width: 45px;
+            font-size: 13px;
+            color: var(--text-sub);
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+        .btn-group {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+        .btn-chip {
+            padding: 8px;
+            font-size: 13px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: #fff;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .btn-chip.active {
+            border-color: var(--primary);
+            background: #fff5f5;
+            color: var(--primary);
+            font-weight: 600;
+        }
+        .color-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .color-circle {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid #fff;
+            box-shadow: 0 0 0 1px #ccc;
+            transition: transform 0.15s;
+        }
+        .color-circle.active {
+            box-shadow: 0 0 0 2px var(--primary);
+            transform: scale(1.1);
+        }
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            padding: 12px 18px;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 10px rgba(211, 47, 47, 0.25);
+            transition: all 0.2s;
+        }
+        .btn-primary:hover {
+            background: var(--primary-hover);
+        }
+        .btn-secondary {
+            background: #f8f9fa;
+            border: 1px solid var(--border);
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .btn-secondary:hover {
+            background: #eef1f6;
+        }
+        .preview-area {
+            flex: 1;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #23272e;
+            position: relative;
+            overflow: hidden;
+        }
+        .canvas-box {
+            max-width: 100%;
+            max-height: 100%;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border-radius: 4px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        canvas {
+            display: block;
+            max-width: 100%;
+            max-height: calc(100vh - 120px);
+            object-fit: contain;
+        }
+        .dropzone-overlay {
+            position: absolute;
+            inset: 20px;
+            border: 2px dashed #4f5666;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            color: #abb2bf;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: rgba(33, 37, 43, 0.7);
+        }
+        .dropzone-overlay:hover, .dropzone-overlay.dragover {
+            border-color: var(--primary);
+            color: #fff;
+            background: rgba(33, 37, 43, 0.9);
+        }
+        .dropzone-overlay svg {
+            width: 54px;
+            height: 54px;
+            fill: currentColor;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🛡️ 证件防盗用水印生成工具</h1>
+        <div class="badges">
+            <span>🔒 本地浏览器纯离线处理 · 不上传服务器</span>
+            <span>⚡ 支持高清原图无损导出</span>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <!-- Settings Sidebar -->
+        <div class="sidebar">
+            <div class="form-group">
+                <label>快速预设模板</label>
+                <select id="presetSelect">
+                    <option value="safe_eval">【安防资质申报专审】</option>
+                    <option value="title_cert">【中级职称/资格证申报】</option>
+                    <option value="id_card">【身份证/个人证件核验】</option>
+                    <option value="common">【通用业务办理免责】</option>
+                    <option value="custom">【自定义输入】</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>主水印文字（第一行）</label>
+                <input type="text" id="mainText" value="仅供办理广东省安防协会能力评价资质使用">
+            </div>
+
+            <div class="form-group">
+                <label>副水印声明（第二行）</label>
+                <input type="text" id="subText" value="他用无效 · 严禁用于工程招投标与质量签字 · 复印无效">
+            </div>
+
+            <div class="form-group">
+                <label>水印排版模式</label>
+                <div class="btn-group" id="modeGroup">
+                    <div class="btn-chip active" data-mode="tile">45°全屏平铺</div>
+                    <div class="btn-chip" data-mode="banner">居中斜向粗幅</div>
+                    <div class="btn-chip" data-mode="stamp">防伪印章框</div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>不透明度</label>
+                <div class="range-row">
+                    <input type="range" id="opacityRange" min="10" max="90" value="38">
+                    <span id="opacityVal">38%</span>
+                </div>
+            </div>
+
+            <div class="form-group" id="densityGroup">
+                <label>平铺间距 / 疏密</label>
+                <div class="range-row">
+                    <input type="range" id="densityRange" min="150" max="450" value="260">
+                    <span id="densityVal">中等</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>文字字体大小</label>
+                <div class="range-row">
+                    <input type="range" id="fontSizeRange" min="60" max="160" value="100">
+                    <span id="fontSizeVal">1.0x</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>倾斜角度</label>
+                <div class="range-row">
+                    <input type="range" id="angleRange" min="-60" max="60" value="32">
+                    <span id="angleVal">32°</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>水印颜色</label>
+                <div class="color-row">
+                    <div class="color-circle active" style="background:#d32f2f;" data-color="rgba(211,47,47,"></div>
+                    <div class="color-circle" style="background:#6c757d;" data-color="rgba(108,117,125,"></div>
+                    <div class="color-circle" style="background:#1976d2;" data-color="rgba(25,118,210,"></div>
+                    <div class="color-circle" style="background:#2e7d32;" data-color="rgba(46,125,50,"></div>
+                    <div class="color-circle" style="background:#212529;" data-color="rgba(33,37,41,"></div>
+                    <input type="color" id="customColor" value="#d32f2f" style="width:32px;height:32px;border:none;cursor:pointer;background:none;">
+                </div>
+            </div>
+
+            <hr style="border:none;border-top:1px solid var(--border);margin:4px 0;">
+
+            <label class="btn-secondary" style="cursor:pointer;">
+                📂 更换图片...
+                <input type="file" id="fileInput" accept="image/*" style="display:none;">
+            </label>
+
+            <button class="btn-primary" id="btnDownload">
+                💾 导出并下载加水印图片 (高清)
+            </button>
+        </div>
+
+        <!-- Preview Canvas -->
+        <div class="preview-area" id="dropArea">
+            <div class="canvas-box" id="canvasBox">
+                <canvas id="mainCanvas"></canvas>
+            </div>
+
+            <div class="dropzone-overlay" id="dropzone" style="display:flex;">
+                <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+                <div style="font-size:18px;font-weight:600;">点击此处选择证件图片，或直接将图片拖拽到这里</div>
+                <div style="font-size:13px;opacity:0.7;">支持 JPG / PNG / 手机拍照 / 扫描件（纯本地处理，不出网）</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const PRESETS = {
+            safe_eval: {
+                main: "仅供办理广东省安防协会能力评价资质使用",
+                sub: "他用无效 · 严禁用于工程招投标与质量签字 · 复印无效"
+            },
+            title_cert: {
+                main: "仅供企业申报技术资质使用 · 他用无效",
+                sub: "严禁用于工程项目挂靠、标书应答与签字验收"
+            },
+            id_card: {
+                main: "仅供办理XXXX业务核验身份使用",
+                sub: "再次复印无效 · 他用无效 · 严禁用于贷款或信用卡申请"
+            },
+            common: {
+                main: "仅供本次业务审核专项使用",
+                sub: "非本人原件签字认可之一律无效 · 复印作废"
+            }
+        };
+
+        let currentImage = null;
+        let currentMode = "tile";
+        let currentColorBase = "rgba(211,47,47,";
+        let originalFileName = "证件照片";
+
+        const canvas = document.getElementById("mainCanvas");
+        const ctx = canvas.getContext("2d");
+        const dropzone = document.getElementById("dropzone");
+        const fileInput = document.getElementById("fileInput");
+
+        // Preset switch
+        document.getElementById("presetSelect").addEventListener("change", (e) => {
+            const val = e.target.value;
+            if (PRESETS[val]) {
+                document.getElementById("mainText").value = PRESETS[val].main;
+                document.getElementById("subText").value = PRESETS[val].sub;
+                renderWatermark();
+            }
+        });
+
+        // Mode switch
+        document.querySelectorAll("#modeGroup .btn-chip").forEach(btn => {
+            btn.addEventListener("click", () => {
+                document.querySelectorAll("#modeGroup .btn-chip").forEach(b => b.classList.remove("active"));
+                btn.classList.add("active");
+                currentMode = btn.dataset.mode;
+                document.getElementById("densityGroup").style.display = currentMode === "tile" ? "flex" : "none";
+                renderWatermark();
+            });
+        });
+
+        // Sliders & Text
+        const bindInput = (id, valId, format) => {
+            const el = document.getElementById(id);
+            el.addEventListener("input", () => {
+                if (valId) document.getElementById(valId).innerText = format ? format(el.value) : el.value;
+                renderWatermark();
+            });
+        };
+        bindInput("opacityRange", "opacityVal", v => v + "%");
+        bindInput("densityRange", "densityVal", v => v > 320 ? "稀疏" : (v < 200 ? "密集" : "中等"));
+        bindInput("fontSizeRange", "fontSizeVal", v => (v / 100).toFixed(1) + "x");
+        bindInput("angleRange", "angleVal", v => v + "°");
+        bindInput("mainText");
+        bindInput("subText");
+
+        // Color selector
+        document.querySelectorAll(".color-circle").forEach(circle => {
+            circle.addEventListener("click", () => {
+                document.querySelectorAll(".color-circle").forEach(c => c.classList.remove("active"));
+                circle.classList.add("active");
+                currentColorBase = circle.dataset.color;
+                renderWatermark();
+            });
+        });
+
+        document.getElementById("customColor").addEventListener("input", (e) => {
+            const hex = e.target.value;
+            const r = parseInt(hex.slice(1, 3), 16);
+            const g = parseInt(hex.slice(3, 5), 16);
+            const b = parseInt(hex.slice(5, 7), 16);
+            currentColorBase = `rgba(${r},${g},${b},`;
+            document.querySelectorAll(".color-circle").forEach(c => c.classList.remove("active"));
+            renderWatermark();
+        });
+
+        // File loading
+        const handleFile = (file) => {
+            if (!file || !file.type.startsWith("image/")) return;
+            originalFileName = file.name.replace(/\.[^/.]+$/, "");
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    currentImage = img;
+                    dropzone.style.display = "none";
+                    renderWatermark();
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        };
+
+        dropzone.addEventListener("click", () => fileInput.click());
+        fileInput.addEventListener("change", (e) => handleFile(e.target.files[0]));
+
+        const dropArea = document.getElementById("dropArea");
+        dropArea.addEventListener("dragover", (e) => { e.preventDefault(); dropzone.classList.add("dragover"); });
+        dropArea.addEventListener("dragleave", () => dropzone.classList.remove("dragover"));
+        dropArea.addEventListener("drop", (e) => {
+            e.preventDefault();
+            dropzone.classList.remove("dragover");
+            handleFile(e.dataTransfer.files[0]);
+        });
+
+        function renderWatermark() {
+            if (!currentImage) return;
+
+            const w = currentImage.width;
+            const h = currentImage.height;
+            canvas.width = w;
+            canvas.height = h;
+
+            // Draw original image
+            ctx.clearRect(0, 0, w, h);
+            ctx.drawImage(currentImage, 0, 0);
+
+            const opacity = parseFloat(document.getElementById("opacityRange").value) / 100.0;
+            const color = `${currentColorBase}${opacity})`;
+            const angle = (parseFloat(document.getElementById("angleRange").value) * Math.PI) / 180;
+            const scale = parseFloat(document.getElementById("fontSizeRange").value) / 100.0;
+            const baseSize = Math.max(w, h);
+
+            const mainText = document.getElementById("mainText").value.trim();
+            const subText = document.getElementById("subText").value.trim();
+
+            ctx.save();
+
+            if (currentMode === "tile") {
+                const fMain = Math.max(16, Math.round(baseSize * 0.024 * scale));
+                const fSub = Math.max(12, Math.round(baseSize * 0.015 * scale));
+
+                // 精确测量文字实际宽度，防止文字横向碰撞挤压
+                ctx.font = `bold ${fMain}px "Microsoft YaHei", sans-serif`;
+                const wMain = ctx.measureText(mainText).width;
+                let wSub = 0;
+                if (subText) {
+                    ctx.font = `${fSub}px "Microsoft YaHei", sans-serif`;
+                    wSub = ctx.measureText(subText).width;
+                }
+                const textBlockW = Math.max(wMain, wSub);
+                const textBlockH = fMain + (subText ? fSub * 1.3 : 0);
+
+                const densityRatio = parseFloat(document.getElementById("densityRange").value) / 240.0;
+                const gapX = Math.max(60, Math.round(baseSize * 0.08 * densityRatio));
+                const gapY = Math.max(40, Math.round(baseSize * 0.085 * densityRatio));
+
+                const stepX = Math.round(textBlockW + gapX);
+                const stepY = Math.round(textBlockH + gapY);
+
+                const diag = Math.hypot(w, h) + 600;
+                ctx.translate(w / 2, h / 2);
+                ctx.rotate(angle);
+
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillStyle = color;
+
+                for (let y = -diag / 2; y <= diag / 2; y += stepY) {
+                    const rowIdx = Math.round(y / stepY);
+                    const xOff = (rowIdx % 2 === 0) ? 0 : stepX / 2;
+                    for (let x = -diag / 2 - stepX; x <= diag / 2 + stepX; x += stepX) {
+                        const cx = x + xOff;
+                        ctx.font = `bold ${fMain}px "Microsoft YaHei", sans-serif`;
+                        ctx.fillText(mainText, cx, y);
+                        if (subText) {
+                            ctx.font = `${fSub}px "Microsoft YaHei", sans-serif`;
+                            ctx.fillText(subText, cx, y + fMain * 1.25);
+                        }
+                    }
+                }
+            } else if (currentMode === "banner") {
+                const fMain = Math.max(24, Math.round(baseSize * 0.038 * scale));
+                const fSub = Math.max(16, Math.round(baseSize * 0.020 * scale));
+                const bw = Math.round(w * 0.94);
+                const bh = Math.round(fMain * 2.8 + (subText ? fSub * 1.8 : 0));
+
+                ctx.translate(w / 2, h / 2);
+                ctx.rotate(angle);
+
+                // Background box
+                ctx.fillStyle = `${currentColorBase}${opacity * 0.25})`;
+                ctx.strokeStyle = `${currentColorBase}${Math.min(1.0, opacity * 1.3)})`;
+                ctx.lineWidth = Math.max(2, Math.round(w * 0.0025));
+                ctx.beginPath();
+                ctx.roundRect(-bw / 2, -bh / 2, bw, bh, 16);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillStyle = color;
+
+                const cyM = subText ? -fSub * 0.7 : 0;
+                ctx.font = `bold ${fMain}px "Microsoft YaHei", sans-serif`;
+                ctx.fillText(mainText, 0, cyM);
+                if (subText) {
+                    ctx.font = `bold ${fSub}px "Microsoft YaHei", sans-serif`;
+                    ctx.fillText(subText, 0, cyM + fMain * 1.2);
+                }
+            } else if (currentMode === "stamp") {
+                const sw = Math.round(w * 0.45 * scale);
+                const sh = Math.round(sw * 0.52);
+                const sx = w - sw - Math.round(w * 0.05);
+                const sy = h - sh - Math.round(h * 0.05);
+
+                ctx.strokeStyle = color;
+                ctx.fillStyle = `${currentColorBase}${opacity * 0.18})`;
+                ctx.lineWidth = Math.max(3, Math.round(sw * 0.015));
+
+                ctx.beginPath();
+                ctx.roundRect(sx, sy, sw, sh, 16);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.lineWidth = Math.max(1, Math.round(sw * 0.006));
+                ctx.beginPath();
+                ctx.roundRect(sx + 8, sy + 8, sw - 16, sh - 16, 12);
+                ctx.stroke();
+
+                const fHead = Math.max(14, Math.round(sh * 0.16));
+                const fBody = Math.max(11, Math.round(sh * 0.12));
+                const cx = sx + sw / 2;
+
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillStyle = color;
+
+                ctx.font = `bold ${fHead}px "Microsoft YaHei", sans-serif`;
+                ctx.fillText(`★ ${mainText} ★`, cx, sy + sh * 0.22);
+
+                ctx.beginPath();
+                ctx.moveTo(sx + 20, sy + sh * 0.38);
+                ctx.lineTo(sx + sw - 20, sy + sh * 0.38);
+                ctx.stroke();
+
+                ctx.font = `${fBody}px "Microsoft YaHei", sans-serif`;
+                ctx.fillText(subText || "仅供指定业务使用 · 再次复印无效", cx, sy + sh * 0.58);
+                ctx.fillText("【 严禁用于其他任何用途 · 违者必究 】", cx, sy + sh * 0.78);
+            }
+
+            ctx.restore();
+        }
+
+        // Download
+        document.getElementById("btnDownload").addEventListener("click", () => {
+            if (!currentImage) {
+                alert("请先导入图片！");
+                return;
+            }
+            const link = document.createElement("a");
+            link.download = `${originalFileName}_防盗水印.jpg`;
+            link.href = canvas.toDataURL("image/jpeg", 0.94);
+            link.click();
+        });
+    </script>
+</body>
+</html>
